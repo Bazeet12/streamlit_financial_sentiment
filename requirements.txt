@@ -4,3 +4,4 @@ numpy
 nltk
 transformers
 tensorflow
+tf-keras
