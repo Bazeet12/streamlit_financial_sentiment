@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import re
-import nltk
 from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
 import tensorflow as tf
 
@@ -13,23 +12,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# Setup NLTK for Streamlit Cloud
-@st.cache_resource
-def setup_nltk_cloud():
-    # This is the key fix for Streamlit Cloud - download directly without checking
-    try:
-        nltk.download('punkt')
-        nltk.download('stopwords')
-        return True
-    except Exception as e:
-        st.error(f"Failed to download NLTK resources: {str(e)}")
-        return False
-
-# Initialize NLTK resources
-nltk_ready = setup_nltk_cloud()
-
 # Simple preprocessing without NLTK
-def basic_preprocess(text):
+@st.cache_data
+def preprocess_text(text):
     if not isinstance(text, str):
         return ''
     
@@ -38,7 +23,7 @@ def basic_preprocess(text):
     text = re.sub(r'[^a-zA-Z\s]', '', text)
     text = re.sub(r'\s+', ' ', text).strip()
     
-    # Simple tokenization and stop word removal
+    # Simple tokenization
     tokens = text.split()
     
     # Basic English stopwords list
@@ -57,34 +42,6 @@ def basic_preprocess(text):
     
     tokens = [token for token in tokens if token not in basic_stopwords]
     return ' '.join(tokens)
-
-# Preprocessing function with fallback
-@st.cache_data
-def preprocess_text(text):
-    if not nltk_ready:
-        return basic_preprocess(text)
-        
-    try:
-        # Import these here to avoid errors if NLTK download failed
-        from nltk.tokenize import word_tokenize
-        from nltk.corpus import stopwords
-        
-        if not isinstance(text, str):
-            return ''
-        
-        # Basic text cleaning
-        text = text.lower()
-        text = re.sub(r'[^a-zA-Z\s]', '', text)
-        text = re.sub(r'\s+', ' ', text).strip()
-        
-        # NLTK tokenization and stopword removal
-        tokens = word_tokenize(text)
-        stop_words = set(stopwords.words('english'))
-        tokens = [token for token in tokens if token not in stop_words]
-        return ' '.join(tokens)
-    except Exception as e:
-        st.warning(f"NLTK processing failed: {str(e)}. Using basic processing instead.")
-        return basic_preprocess(text)
 
 # Load the DistilBERT model and tokenizer
 @st.cache_resource
@@ -146,13 +103,7 @@ def main():
                     st.error(f"Sentiment: {sentiment}")
                 st.info(f"Confidence: {confidence:.2%}")
                 
-                # Display processing method used
-                if nltk_ready:
-                    method = "NLTK"
-                else:
-                    method = "basic (fallback)"
-                    
-                with st.expander(f"View Preprocessed Text ({method})"):
+                with st.expander("View Preprocessed Text"):
                     st.write(preprocess_text(user_input))
         else:
             st.warning("Please enter some text to analyze.")
