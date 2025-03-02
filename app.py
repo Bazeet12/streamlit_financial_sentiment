@@ -15,6 +15,12 @@ st.set_page_config(
     layout="wide"
 )
 
+@st.cache_data
+def download_nltk_resources():
+    nltk.download('punkt')
+
+download_nltk_resources()
+
 # Download NLTK resources
 @st.cache_resource
 def download_nltk_resources():
