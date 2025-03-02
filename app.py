@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import re
+import os
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -15,11 +16,16 @@ st.set_page_config(
     layout="wide"
 )
 
-# Download required NLTK resources
+# Force NLTK to download resources and set custom path
 @st.cache_resource
 def download_nltk_resources():
-    nltk.download('punkt')
-    nltk.download('stopwords')
+    nltk_data_path = os.path.join(os.getcwd(), "nltk_data")
+    if not os.path.exists(nltk_data_path):
+        os.makedirs(nltk_data_path)
+
+    nltk.data.path.append(nltk_data_path)  # Set custom path for NLTK
+    nltk.download('punkt', download_dir=nltk_data_path)
+    nltk.download('stopwords', download_dir=nltk_data_path)
 
 download_nltk_resources()
 
@@ -28,12 +34,15 @@ download_nltk_resources()
 def preprocess_text(text):
     if not isinstance(text, str):
         return ''
+    
     text = text.lower()
     text = re.sub(r'[^a-zA-Z\s]', '', text)  # Remove special characters
     text = re.sub(r'\s+', ' ', text).strip()  # Remove extra spaces
+
     tokens = word_tokenize(text)
     stop_words = set(stopwords.words('english'))
     tokens = [token for token in tokens if token not in stop_words]
+    
     return ' '.join(tokens)
 
 # Load the DistilBERT model and tokenizer
