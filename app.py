@@ -4,8 +4,6 @@ import numpy as np
 import re
 import os
 import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
 import tensorflow as tf
 
@@ -16,43 +14,38 @@ st.set_page_config(
     layout="wide"
 )
 
-# Force NLTK to download resources and set custom path
-@st.cache_resource
-def download_nltk_resources():
-    # Create a directory for NLTK data if it doesn't exist
-    nltk_data_path = os.path.join(os.getcwd(), "nltk_data")
-    if not os.path.exists(nltk_data_path):
-        os.makedirs(nltk_data_path)
-    
-    # Add the custom path to NLTK's search paths
-    nltk.data.path.append(nltk_data_path)
-    
-    # Download required NLTK resources with explicit download directory
-    try:
-        nltk.download('punkt', download_dir=nltk_data_path, quiet=True)
-        nltk.download('stopwords', download_dir=nltk_data_path, quiet=True)
-        st.success("NLTK resources downloaded successfully!")
-    except Exception as e:
-        st.error(f"Error downloading NLTK resources: {e}")
-    
-    # Verify resources were downloaded
-    try:
-        # Test if resources can be loaded
-        from nltk.tokenize import word_tokenize
-        word_tokenize("Test sentence")
-        from nltk.corpus import stopwords
-        stopwords.words('english')
-        return True
-    except LookupError as e:
-        st.error(f"Failed to load NLTK resources: {e}")
-        return False
-
-# Ensure NLTK resources are downloaded
-nltk_ready = download_nltk_resources()
-
-# Simple tokenizer fallback in case NLTK fails
+# Simple tokenization and stopwords without NLTK
 def simple_tokenize(text):
-    return text.split()
+    # Basic word splitting
+    tokens = re.findall(r'\b\w+\b', text.lower())
+    
+    # Common English stopwords
+    stopwords = {
+        'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until', 'while',
+        'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through',
+        'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'in',
+        'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 'once', 'here',
+        'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more',
+        'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so',
+        'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now', 'i',
+        'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', 'your', 'yours',
+        'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', 'her', 'hers',
+        'herself', 'it', 'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves',
+        'what', 'which', 'who', 'whom', 'this', 'that', 'these', 'those', 'am', 'is', 'are',
+        'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does',
+        'did', 'doing', 'would', 'should', 'could', 'ought', 'i\'m', 'you\'re', 'he\'s',
+        'she\'s', 'it\'s', 'we\'re', 'they\'re', 'i\'ve', 'you\'ve', 'we\'ve', 'they\'ve',
+        'i\'d', 'you\'d', 'he\'d', 'she\'d', 'we\'d', 'they\'d', 'i\'ll', 'you\'ll', 'he\'ll',
+        'she\'ll', 'we\'ll', 'they\'ll', 'isn\'t', 'aren\'t', 'wasn\'t', 'weren\'t', 'hasn\'t',
+        'haven\'t', 'hadn\'t', 'doesn\'t', 'don\'t', 'didn\'t', 'won\'t', 'wouldn\'t',
+        'shan\'t', 'shouldn\'t', 'can\'t', 'cannot', 'couldn\'t', 'mustn\'t', 'let\'s',
+        'that\'s', 'who\'s', 'what\'s', 'here\'s', 'there\'s', 'when\'s', 'where\'s', 'why\'s',
+        'how\'s'
+    }
+    
+    # Filter out stopwords
+    filtered_tokens = [token for token in tokens if token not in stopwords]
+    return filtered_tokens
 
 # Preprocessing function
 @st.cache_data
@@ -64,17 +57,8 @@ def preprocess_text(text):
     text = re.sub(r'[^a-zA-Z\s]', '', text)  # Remove special characters
     text = re.sub(r'\s+', ' ', text).strip()  # Remove extra spaces
     
-    # Use NLTK tokenizer if available, otherwise use simple tokenization
-    try:
-        tokens = word_tokenize(text)
-        stop_words = set(stopwords.words('english'))
-        tokens = [token for token in tokens if token not in stop_words]
-    except:
-        st.warning("Using simplified tokenization (NLTK unavailable)")
-        tokens = simple_tokenize(text)
-        # Use a simple stopword list as fallback
-        simple_stopwords = {'a', 'an', 'the', 'and', 'or', 'but', 'if', 'then', 'is', 'are', 'was', 'were'}
-        tokens = [token for token in tokens if token not in simple_stopwords]
+    # Use simple tokenization and filtering
+    tokens = simple_tokenize(text)
     
     return ' '.join(tokens)
 
